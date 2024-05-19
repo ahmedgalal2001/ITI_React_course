@@ -1,42 +1,44 @@
-import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import axios from "axios";
+import React, { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchPosts, deletePost } from "../Products/productsOperations";
 
 const ProductDetails = () => {
-  const { id } = useParams();
-  const [post, setPost] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const posts = useSelector((state) => state.posts.posts);
+  const postStatus = useSelector((state) => state.posts.status);
+  const error = useSelector((state) => state.posts.error);
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get(
-          `https://jsonplaceholder.typicode.com/posts/${id}`
-        );
-        setPost(response.data);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
+    if (postStatus === "idle") {
+      dispatch(fetchPosts());
+    }
+  }, [postStatus, dispatch]);
 
-    fetchProduct();
-  }, [id]);
+  const handleDelete = (id) => {
+    dispatch(deletePost(id));
+  };
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
+  let content;
+
+  if (postStatus === "loading") {
+    content = <p>Loading...</p>;
+  } else if (postStatus === "succeeded") {
+    content = posts.map((post) => (
+      <div key={post.id}>
+        <h3>{post.title}</h3>
+        <p>{post.body}</p>
+        <button onClick={() => handleDelete(post.id)}>Delete</button>
+      </div>
+    ));
+  } else if (postStatus === "failed") {
+    content = <p>{error}</p>;
+  }
 
   return (
-    <div
-      key={post.id}
-      className="bg-white w-1/3 mx-auto shadow-md rounded-md p-4"
-    >
-      <h2 className="text-lg font-semibold mb-2">{post.title}</h2>
-      <p className="text-gray-600">{post.body}</p>
-    </div>
+    <section>
+      <h2>Posts</h2>
+      {content}
+    </section>
   );
 };
 
